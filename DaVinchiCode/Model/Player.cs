@@ -7,91 +7,134 @@ using System.Threading.Tasks;
 namespace DaVinchiCode.Model
 {
 	/// <summary>
-	/// Player의 hand의 Card들을 출력을 위한 클래스
+	/// HandModified 이벤트를 위한 EventArgs
 	/// </summary>
-	public class HandCard
+	public class HandInfoArg : EventArgs
 	{
-		public CardStatus Status { get; private set; }
-		public CardColor Color { get; private set; }
-
-		public bool? IsJokerCard { get; private set; }
-		public bool? IsNumCard { get { return !IsJokerCard; } }
-		public int? Num { get; private set; }
-
-		public HandCard(Card CardOnHand)
+		#region /* classes for CardInfo Hierarchy */
+		public abstract class CardInfo
 		{
-			Status = CardOnHand.Status;
-			Color = CardOnHand.Color;
-			
-			//JokerCard, NumCard인지에 따라 다르게 초기화해야됨
+			public CardStatus Status { get; protected set; }
+			public CardColor Color { get; protected set; }
+
+			public CardInfo(Card card)
+			{
+				Status = CardStatus.Hidden;
+				Color = card.Color;
+			}
 		}
+
+		public class HiddenCard : CardInfo
+		{
+			public HiddenCard(Card card) : base(card) { }
+		}
+
+		public abstract class ShownCard : CardInfo
+		{
+			public ShownCard(Card card) : base(card) { }
+		}
+
+		public class ShownNumCard : ShownCard
+		{
+			public int Num { get; protected set; }
+
+			public ShownNumCard(NumCard card) : base(card)
+			{
+				Num = card.Num;
+			}
+		}
+
+		public class ShownJokerCard : ShownCard
+		{
+			public ShownJokerCard(JokerCard card) : base(card) { }
+		}
+		#endregion
+
+		public List<CardInfo> handinfo;
+
+		public HandInfoArg(List<Card> hand)
+		{
+			foreach(var card in hand)
+			{
+				if(card.Status == CardStatus.Hidden)
+				{
+					handinfo.Add(new HiddenCard(card));
+				}
+				else //card.Status == CardStatus.Shown
+				{
+					if(card is NumCard)
+					{
+						handinfo.Add(new ShownNumCard((NumCard)card));
+					}
+					else //card is JokerCard
+					{
+						handinfo.Add(new ShownJokerCard((JokerCard)card));
+					}
+				}
+			}
+		}
+
+		//NOTE : 개선사항 - HandModified 이벤트가 호출될때마다 새로 객체를 만들지 말고 미리 객체를 만들어 놓고 변경사항만 추가하는 식으로 하는게 어떨지...
 	}
 	
-	/// <summary>
-	/// 게임 참가 플레이어
-	/// </summary>
 	public class Player
 	{
-		/// <summary>
-		/// Player가 소속된 Game
-		/// </summary>
 		private Game gamecore;
-		/// <summary>
-		/// Player가 들고 있는 Card
-		/// </summary>
-		private List<Card> hand;
-		/// <summary>
-		/// Game의 Ground로부터 새로 받은 Card의 hand에서의 Index를 저장하는 변수
-		/// </summary>
-		private int? newCardIdx;
+		private List<Card> hand; //Player가 들고 있는 Card들
+		private int? newCardIdx; //새로 받은 Card의 Index를 저장하는 변수
 
-		/// <summary>
-		/// Player의 Hand가 변경되었음을 알리는 이벤트
-		/// </summary>
-		public event EventHandler HandModifed;
+		public event EventHandler HandModified;
 
-		/// <summary>
-		/// 생성자
-		/// </summary>
-		/// <param name="gamecore">Player가 소속된 Game</param>
 		public Player(Game gamecore)
 		{
 			this.gamecore = gamecore;
 
 			hand = null;
 			newCardIdx = null;
+			
 		}
 
 		/// <summary>
-		/// 새 Card를 추가하는 메소드
+		/// newCard를 hand에 추가하는 메소드.
+		/// NumCard 추가용.
+		/// hand에 추가할 때 올바른 위치에 자동으로 삽입한다.
+		/// 삽입 후 handModified 이벤트를 호출한다.
 		/// </summary>
-		/// <param name="card">새로 받은 NumCard</param>
-		public void AddNewCard(NumCard card)
+		/// <param name="newCard">새로 받은 Card</param>
+		public void AddNewCard(NumCard newCard)
 		{
 			for(int i = 0; i < hand.Count; i++)
 			{
 				if (hand[i] is NumCard)
 				{
 					NumCard curCard = hand[i] as NumCard;
-					
-					//hand에서 Card는 순서대로 배열되어 있다.
-					//그러므로 현재 탐색 위치의 Card가 새로 받은 Card보다 큰 첫 번째 카드라면 여기에 새로 받은 Card가 들어가야 한다.
-					if(curCard.CompareTo(card) < 0)
+
+					//hand에서 Card는 순서대로 정렬되어 있다.
+					//현재 낮은 위치에서부터 순차적으로 탐색하고 있다.
+					//현재 탐색 위치의 Card가 새로 받은 Card보다 큰 첫 번째 카드라면 여기에 새로 받은 Card가 들어가야 한다.
+					if(curCard.CompareTo(newCard) < 0) //curCard < newCard
 					{
-						hand.Insert(i, card); //hand에 새 Card를 추가한다.
-						card.Status = CardStatus.Hidden; //추가한 Card의 CardStatus를 Hidden으로 바꾼다.
-						newCardIdx = i; //newCardIdx에 추가한 위치를 기록해놓는다.
+						hand.Insert(i, newCard);
+						newCard.Status = CardStatus.Hidden;
+						newCardIdx = i;
 						break;
 					}
 				}
 			}
+
+			HandModified(this, new HandInfoArg(hand));
 		}
+
 		/// <summary>
-		/// 새 Card를 추가하는 메소드
+		/// newCard를 hand에 추가하는 메소드.
+		/// JokerCard 추가용.
+		/// hand의 handIdx에 newCard를 삽입한다.
+		/// 삽입 후 handModified 이벤트를 호출한다.
+		/// handIdx가 유효하지 않으면 예외 throw.
 		/// </summary>
-		/// <param name="card">새로 받은 JokerCard</param>
-		/// <exception cref="System.Exception">입력받은 handIdx가 유효하지 않으면 예외를 throw한다.</exception>
-		public void AddNewCard(JokerCard card, int handIdx)
+		/// <param name="newCard">새로 받은 Card</param>
+		/// <param name="handIdx">hand에서의 Index</param>
+		public void AddNewCard(JokerCard newCard, int handIdx)
 		{
 			//만약 입력받은 handIdx가 유효하지 않으면 예외를 throw한다.
 			if (handIdx > hand.Count)
@@ -99,18 +142,21 @@ namespace DaVinchiCode.Model
 				throw new Exception("Invalid handIdx");
 			}
 			
-			hand.Insert(handIdx, card); //요청한 위치에 Card를 넣는다.
-			card.Status = CardStatus.Hidden; //추가한 Card의 CardStatus를 Hidden으로 바꾼다.
-			newCardIdx = handIdx; //newCardIdx에 추가한 위치를 기록해놓는다.
+			hand.Insert(handIdx, newCard);
+			newCard.Status = CardStatus.Hidden;
+			newCardIdx = handIdx;
+
+			HandModified(this, new HandInfoArg(hand));
 		}
 
 		/// <summary>
-		/// 다른 Player의 Guess문의에 답하는 메소드
+		/// 다른 Player의 Guess요청에 답하는 메소드.
+		/// Guess가 맞으면 맞춰진 Card를 Shown으로 바꾸고 handModified 이벤트를 호출한다.
+		/// handIdx가 유효하지 않으면 예외 throw.
 		/// </summary>
-		/// <param name="handIdx">문의한 Index</param>
-		/// <param name="guessCard">문의한 Card</param>
-		/// <returns>handIdx위치에 guessCard가 맞으면 true, 틀리면 false 반환</returns>
-		/// /// <exception cref="System.Exception">입력받은 handIdx가 유효하지 않으면 예외를 throw한다.</exception>
+		/// <param name="handIdx">hand에서의 Index</param>
+		/// <param name="guessCard">Guess로 제시한 Card</param>
+		/// <returns>Guess가 맞으면 true, 틀리면 false 반환</returns>
 		public bool GuessResult(int handIdx, Card guessCard)
 		{
 			//만약 입력받은 handIdx가 유효하지 않으면 예외를 throw한다.
@@ -119,15 +165,28 @@ namespace DaVinchiCode.Model
 				throw new Exception("Invalid handIdx");
 			}
 
-			if(hand[handIdx].Equals(guessCard)) //만약 Guess한 Card가 맞으면
+			if(!hand[handIdx].Equals(guessCard)) //만약 Guess한 Card가 맞으면
 			{
 				hand[handIdx].Status = CardStatus.Shown; //맞춘 Card를 깐다.
+				HandModified(this, new HandInfoArg(hand));
 				return true;
 			}
 
 			return false;
 		}
 
-		//자신의 hand를 보여주는 메소드 필요
+		/// <summary>
+		/// Guess에 실패했을 시 호출되는 메소드
+		/// </summary>
+		public void GuessFailed()
+		{
+			if(newCardIdx.HasValue == true)
+			{
+				hand[newCardIdx.Value].Status = CardStatus.Shown;
+				HandModified(this, new HandInfoArg(hand));
+			}
+
+			newCardIdx = null;
+		}
 	}
 }
