@@ -81,9 +81,50 @@ namespace DaVinchiCode.Model
 	{
 		private Game gamecore;
 		private List<Card> hand; //Player가 들고 있는 Card들
+		private int HiddenCardNum; //hand에서 Hidden상태인 Card 수를 카운트하는 변수
 		private int? newCardIdx; //새로 받은 Card의 Index를 저장하는 변수
 
+		/// <summary>
+		/// hand가 수정되면 발생하는 이벤트
+		/// </summary>
 		public event EventHandler HandModified;
+		/// <summary>
+		/// Player hand의 모든 Card가 Shown이 되면 발생하는 이벤트
+		/// </summary>
+		public event EventHandler Eliminated;
+
+		/// <summary>
+		/// handIdx에 newCard를 CardStatus.Hidden상태로 추가하고 HandModified 이벤트를 호출한다.
+		/// <para>handIdx가 유효한지 확인하지 않는다.</para>
+		/// </summary>
+		/// <param name="handIdx">hand에서의 Index</param>
+		/// <param name="newCard">추가할 새 Card</param>
+		private void AddHiddenCardAt(int handIdx, Card newCard)
+		{
+			newCard.Status = CardStatus.Hidden;
+			hand.Insert(handIdx, newCard);
+			HiddenCardNum++;
+			newCardIdx = handIdx;
+
+			HandModified(this, new HandInfoArg(hand));
+		}
+
+		/// <summary>
+		/// handIdx의 Card의 Status를 CardStatus.Shown으로 바꾸고 HandModified 이벤트를 호출한다. 만약 필요하다면 Eliminated 이벤트도 호출한다.
+		/// </summary>
+		/// <param name="handIdx">hand에서의 Index</param>
+		private void OpenCard(int handIdx)
+		{
+			hand[handIdx].Status = CardStatus.Shown;
+			HiddenCardNum--;
+
+			HandModified(this, new HandInfoArg(hand));
+
+			if(HiddenCardNum == 0)
+			{
+				Eliminated(this, EventArgs.Empty);
+			}
+		}
 
 		public Player(Game gamecore)
 		{
@@ -91,7 +132,7 @@ namespace DaVinchiCode.Model
 
 			hand = null;
 			newCardIdx = null;
-			
+			HiddenCardNum = 0;
 		}
 
 		/// <summary>
@@ -114,15 +155,11 @@ namespace DaVinchiCode.Model
 					//현재 탐색 위치의 Card가 새로 받은 Card보다 큰 첫 번째 카드라면 여기에 새로 받은 Card가 들어가야 한다.
 					if(curCard.CompareTo(newCard) < 0) //curCard < newCard
 					{
-						hand.Insert(i, newCard);
-						newCard.Status = CardStatus.Hidden;
-						newCardIdx = i;
+						AddHiddenCardAt(i, newCard);
 						break;
 					}
 				}
 			}
-
-			HandModified(this, new HandInfoArg(hand));
 		}
 
 		/// <summary>
@@ -141,12 +178,8 @@ namespace DaVinchiCode.Model
 			{
 				throw new Exception("Invalid handIdx");
 			}
-			
-			hand.Insert(handIdx, newCard);
-			newCard.Status = CardStatus.Hidden;
-			newCardIdx = handIdx;
 
-			HandModified(this, new HandInfoArg(hand));
+			AddHiddenCardAt(handIdx, newCard);
 		}
 
 		/// <summary>
@@ -165,10 +198,9 @@ namespace DaVinchiCode.Model
 				throw new Exception("Invalid handIdx");
 			}
 
-			if(!hand[handIdx].Equals(guessCard)) //만약 Guess한 Card가 맞으면
+			if(hand[handIdx].Equals(guessCard)) //만약 Guess한 Card가 맞으면
 			{
-				hand[handIdx].Status = CardStatus.Shown; //맞춘 Card를 깐다.
-				HandModified(this, new HandInfoArg(hand));
+				OpenCard(handIdx);
 				return true;
 			}
 
@@ -176,14 +208,13 @@ namespace DaVinchiCode.Model
 		}
 
 		/// <summary>
-		/// Guess에 실패했을 시 호출되는 메소드
+		/// Guess에 실패했을 시 호출되는 메소드. (만약 있다면) 새로 받은 Card를 Open한다.
 		/// </summary>
 		public void GuessFailed()
 		{
 			if(newCardIdx.HasValue == true)
 			{
-				hand[newCardIdx.Value].Status = CardStatus.Shown;
-				HandModified(this, new HandInfoArg(hand));
+				OpenCard(newCardIdx.Value);
 			}
 
 			newCardIdx = null;
