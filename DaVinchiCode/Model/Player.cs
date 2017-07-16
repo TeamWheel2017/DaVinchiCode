@@ -137,12 +137,11 @@ namespace DaVinchiCode.Model
 
 		/// <summary>
 		/// newCard를 hand에 추가하는 메소드.
-		/// NumCard 추가용.
 		/// hand에 추가할 때 올바른 위치에 자동으로 삽입한다.
 		/// 삽입 후 handModified 이벤트를 호출한다.
 		/// </summary>
 		/// <param name="newCard">새로 받은 Card</param>
-		public void AddNewCard(NumCard newCard)
+		public void AddNewNumCard(NumCard newCard)
 		{
 			for(int i = 0; i < hand.Count; i++)
 			{
@@ -164,14 +163,13 @@ namespace DaVinchiCode.Model
 
 		/// <summary>
 		/// newCard를 hand에 추가하는 메소드.
-		/// JokerCard 추가용.
 		/// hand의 handIdx에 newCard를 삽입한다.
 		/// 삽입 후 handModified 이벤트를 호출한다.
 		/// handIdx가 유효하지 않으면 예외 throw.
 		/// </summary>
 		/// <param name="newCard">새로 받은 Card</param>
 		/// <param name="handIdx">hand에서의 Index</param>
-		public void AddNewCard(JokerCard newCard, int handIdx)
+		public void AddNewJokerCard(JokerCard newCard, int handIdx)
 		{
 			//만약 입력받은 handIdx가 유효하지 않으면 예외를 throw한다.
 			if (handIdx >= hand.Count)
