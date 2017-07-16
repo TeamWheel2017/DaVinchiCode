@@ -174,7 +174,7 @@ namespace DaVinchiCode.Model
 		public void AddNewCard(JokerCard newCard, int handIdx)
 		{
 			//만약 입력받은 handIdx가 유효하지 않으면 예외를 throw한다.
-			if (handIdx > hand.Count)
+			if (handIdx >= hand.Count)
 			{
 				throw new Exception("Invalid handIdx");
 			}

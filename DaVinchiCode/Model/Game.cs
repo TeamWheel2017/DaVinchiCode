@@ -17,6 +17,11 @@ namespace DaVinchiCode.Model
 		private List<Card> ground;
 		private int turn; //누구 차례인지 players의 Index를 저장
 
+		/// <summary>
+		/// ground가 수정되면 발생하는 이벤트
+		/// </summary>
+		public event EventHandler GroundModified;
+
 		private void ShuffleGround()
 		{
 			//ground의 random위치에서 Card를 빼내 ground의 뒤에 붙인다.
@@ -52,6 +57,7 @@ namespace DaVinchiCode.Model
 			for (int i = 0; i < playerNum; i++)
 			{
 				players.Add(new Player(this));
+				players[i].Eliminated += RemovePlayer;
 			}
 
 			//ground 초기화
@@ -61,18 +67,18 @@ namespace DaVinchiCode.Model
 			}
 		}
 
+		//TODO : 만들어야 할 메소드
+		//Init() : 플레이어들에게 초기 카드 분배(사용자 입력 필요). 그라운드에 조커카드 추가. 그라운드 셔플. GroundModified 이벤트 발생. 
+		
+
 		/// <summary>
 		/// Player의 Eliminated 이벤트가 호출되면 실행될 메소드. Player를 제거한다.
 		/// </summary>
-		/// <param name="playerIdx"></param>
-		public void RemovePlayer(int playerIdx)
+		/// <param name="sender">Eliminated 이벤트를 호출한 객체</param>
+		/// <param name="e">EventArgs</param>
+		private void RemovePlayer(object sender, EventArgs e)
 		{
-			if(playerIdx >= players.Count)
-			{
-				throw new Exception("Invalid playerIdx");
-			}
-
-			players.RemoveAt(playerIdx);
+			players.Remove(sender as Player);
 		}
 	}
 }
