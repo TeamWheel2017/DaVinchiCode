@@ -12,7 +12,9 @@ namespace DaVinchiCode.Model
 
 		public GroundInfoArg(List<Card> ground)
 		{
-			foreach(var item in ground)
+			groundInfo = new List<CardColor>(ground.Count);
+
+			foreach (var item in ground)
 			{
 				groundInfo.Add(item.Color);
 			}
@@ -30,6 +32,15 @@ namespace DaVinchiCode.Model
 		IUserInput userInput; //사용자 입력을 받는 인터페이스
 		private List<Card> ground;
 		private int nowTurnIdx; //현재 차례인 player의 Index를 저장
+
+		public int GroundCardNum
+		{
+			get { return ground.Count; }
+		}
+		public int PlayerNum
+		{
+			get { return players.Count; }
+		}
 
 		/// <summary>
 		/// ground가 수정되면 발생하는 이벤트
@@ -62,6 +73,9 @@ namespace DaVinchiCode.Model
 		/// <param name="userInput">사용자 입력을 받는 인터페이스</param>
 		public Game(int playerNum, IUserInput userInput)
 		{
+			players = new List<Player>();
+			ground = new List<Card>();
+			
 			//Player의 수가 4명 초과면 예외 throw
 			if (playerNum > 4)
 			{
@@ -98,16 +112,16 @@ namespace DaVinchiCode.Model
 			{
 				if(players.Count == 4) //player가 4명이면 Card 3장씩 분배
 				{
-					player.AddNewNumCard((NumCard)ground[userInput.ChooseCardFromGround()]);
-					player.AddNewNumCard((NumCard)ground[userInput.ChooseCardFromGround()]);
-					player.AddNewNumCard((NumCard)ground[userInput.ChooseCardFromGround()]);
+					player.AddNewNumCard((NumCard)ground[userInput.ChooseCardFromGround(GroundCardNum)]);
+					player.AddNewNumCard((NumCard)ground[userInput.ChooseCardFromGround(GroundCardNum)]);
+					player.AddNewNumCard((NumCard)ground[userInput.ChooseCardFromGround(GroundCardNum)]);
 				}
 				else //player가 4명 미만이면 Card 4장씩 분배
 				{
-					player.AddNewNumCard((NumCard)ground[userInput.ChooseCardFromGround()]);
-					player.AddNewNumCard((NumCard)ground[userInput.ChooseCardFromGround()]);
-					player.AddNewNumCard((NumCard)ground[userInput.ChooseCardFromGround()]);
-					player.AddNewNumCard((NumCard)ground[userInput.ChooseCardFromGround()]);
+					player.AddNewNumCard((NumCard)ground[userInput.ChooseCardFromGround(GroundCardNum)]);
+					player.AddNewNumCard((NumCard)ground[userInput.ChooseCardFromGround(GroundCardNum)]);
+					player.AddNewNumCard((NumCard)ground[userInput.ChooseCardFromGround(GroundCardNum)]);
+					player.AddNewNumCard((NumCard)ground[userInput.ChooseCardFromGround(GroundCardNum)]);
 				}
 				
 			}
@@ -120,7 +134,10 @@ namespace DaVinchiCode.Model
 			ShuffleGround();
 
 			//GroundModified 이벤트 발생
-			GroundModified(this, new GroundInfoArg(ground));
+			if(GroundModified != null)
+			{
+				GroundModified(this, new GroundInfoArg(ground));
+			}
 		}
 		
 		/// <summary>
@@ -132,11 +149,11 @@ namespace DaVinchiCode.Model
 			//처음에 Card 1장을 ground에서 뽑는다.
 			if (ground.Count != 0) //ground에 남은 Card가 없으면 뽑지 않는다.
 			{
-				Card newCard = ground[userInput.ChooseCardFromGround()];
+				Card newCard = ground[userInput.ChooseCardFromGround(GroundCardNum)];
 
 				if(newCard is JokerCard) //새로 뽑은 Card가 JokerCard면
 				{
-					nowTurn.AddNewJokerCard((JokerCard)newCard, userInput.SetJokerCardPosition());
+					nowTurn.AddNewJokerCard((JokerCard)newCard, userInput.SetJokerCardPosition(nowTurn.HandCardNum));
 				}
 				else //새로 뽑은 Card가 NumCard면
 				{
@@ -144,13 +161,16 @@ namespace DaVinchiCode.Model
 				}
 
 				ground.Remove(newCard);
-				GroundModified(this, new GroundInfoArg(ground));
+				if (GroundModified != null)
+				{
+					GroundModified(this, new GroundInfoArg(ground));
+				}
 			}
 
 			//Guess를 수행한다.
 			while(true)
 			{
-				if (players[ userInput.GuessWho() ].GuessResult( userInput.GuessPosition() , userInput.GuessCard() ) ) //Guess가 맞으면
+				if (players[ userInput.GuessWho(PlayerNum) ].GuessResult( userInput.GuessPosition(nowTurn.HandCardNum) , userInput.GuessCard() ) ) //Guess가 맞으면
 				{
 					if(userInput.GuessAgain()) //다시 Guess하겠다고 하면
 					{

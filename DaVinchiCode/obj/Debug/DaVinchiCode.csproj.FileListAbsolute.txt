@@ -1,0 +1,8 @@
+C:\Users\Administrator\Desktop\DaVinchiCode\DaVinchiCode\obj\Debug\DaVinchiCode.csprojResolveAssemblyReference.cache
+C:\Users\Administrator\Desktop\DaVinchiCode\DaVinchiCode\obj\Debug\DaVinchiCode.Properties.Resources.resources
+C:\Users\Administrator\Desktop\DaVinchiCode\DaVinchiCode\obj\Debug\DaVinchiCode.csproj.GenerateResource.Cache
+C:\Users\Administrator\Desktop\DaVinchiCode\DaVinchiCode\bin\Debug\DaVinchiCode.exe.config
+C:\Users\Administrator\Desktop\DaVinchiCode\DaVinchiCode\bin\Debug\DaVinchiCode.exe
+C:\Users\Administrator\Desktop\DaVinchiCode\DaVinchiCode\bin\Debug\DaVinchiCode.pdb
+C:\Users\Administrator\Desktop\DaVinchiCode\DaVinchiCode\obj\Debug\DaVinchiCode.exe
+C:\Users\Administrator\Desktop\DaVinchiCode\DaVinchiCode\obj\Debug\DaVinchiCode.pdb

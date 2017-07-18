@@ -84,6 +84,11 @@ namespace DaVinchiCode.Model
 		private int HiddenCardNum; //hand에서 Hidden상태인 Card 수를 카운트하는 변수
 		private int? newCardIdx; //새로 받은 Card의 Index를 저장하는 변수
 
+		public int HandCardNum
+		{
+			get { return hand.Count; }
+		}
+
 		/// <summary>
 		/// hand가 수정되면 발생하는 이벤트
 		/// </summary>
@@ -106,7 +111,10 @@ namespace DaVinchiCode.Model
 			HiddenCardNum++;
 			newCardIdx = handIdx;
 
-			HandModified(this, new HandInfoArg(hand));
+			if(HandModified != null)
+			{
+				HandModified(this, new HandInfoArg(hand));
+			}
 		}
 
 		/// <summary>
@@ -118,11 +126,17 @@ namespace DaVinchiCode.Model
 			hand[handIdx].Status = CardStatus.Shown;
 			HiddenCardNum--;
 
-			HandModified(this, new HandInfoArg(hand));
-
-			if(HiddenCardNum == 0)
+			if (HandModified != null)
 			{
-				Eliminated(this, EventArgs.Empty);
+				HandModified(this, new HandInfoArg(hand));
+			}
+
+			if (HiddenCardNum == 0)
+			{
+				if(Eliminated != null)
+				{
+					Eliminated(this, EventArgs.Empty);
+				}
 			}
 		}
 
@@ -130,7 +144,7 @@ namespace DaVinchiCode.Model
 		{
 			this.gamecore = gamecore;
 
-			hand = null;
+			hand = new List<Card>();
 			newCardIdx = null;
 			HiddenCardNum = 0;
 		}

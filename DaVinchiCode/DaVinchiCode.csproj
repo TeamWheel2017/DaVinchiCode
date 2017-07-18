@@ -53,6 +53,7 @@
     </Compile>
     <Compile Include="Model\Card.cs" />
     <Compile Include="Model\Game.cs" />
+    <Compile Include="Model\IUserInput.cs" />
     <Compile Include="Model\Player.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
